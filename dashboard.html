@@ -7,21 +7,35 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Montserrat', sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        body { font-family: 'Montserrat', sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; transition: background 0.3s ease; }
         .status-header { position: absolute; top: 20px; font-size: 12px; letter-spacing: 2px; color: #1ca65a; font-weight: 700; }
+        
         #display-card { background: #111; border: 2px solid #1ca65a; border-radius: 30px; padding: 40px; width: 600px; text-align: center; transition: 0.5s; opacity: 0; transform: translateY(20px); }
         #display-card.active { opacity: 1; transform: translateY(0); }
+        
         .label { color: #888; font-size: 14px; font-weight: 700; text-transform: uppercase; margin-top: 20px; }
         .value { font-size: 42px; font-weight: 800; margin-bottom: 10px; }
         .reg-value { color: #1ca65a; font-size: 28px; }
-        #waiting-msg { font-size: 24px; color: #444; font-weight: 700; text-transform: uppercase; }
-        .success-pulse { animation: pulse 0.5s ease-out; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(28, 166, 90, 0.7); } 100% { box-shadow: 0 0 0 30px rgba(28, 166, 90, 0); } }
+        
+        #waiting-msg { font-size: 24px; color: #444; font-weight: 700; text-transform: uppercase; text-align: center; }
+        .error-msg { color: #ff4d4d; font-size: 14px; margin-top: 10px; }
+
+        /* History Table */
+        #history-container { margin-top: 30px; width: 600px; max-height: 150px; overflow-y: auto; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; color: #1ca65a; padding-bottom: 5px; border-bottom: 1px solid #333; }
+        td { padding: 5px 0; border-bottom: 1px solid #222; }
     </style>
 </head>
 <body>
-    <div class="status-header">ICMU LIVE SCANNER CONNECTED</div>
-    <div id="waiting-msg">Ready to Scan...</div>
+
+    <div class="status-header" id="sync-status">SYNCING WITH GOOGLE SHEETS...</div>
+    
+    <div id="waiting-msg">
+        Ready to Scan...
+        <div id="debug-info" class="error-msg"></div>
+    </div>
+
     <div id="display-card">
         <div class="label">Member Name</div>
         <div id="disp-name" class="value">---</div>
@@ -31,8 +45,14 @@
         <div id="disp-index" class="value">---</div>
     </div>
 
+    <div id="history-container">
+        <table>
+            <thead><tr><th>Time</th><th>Reg No</th><th>Name</th></tr></thead>
+            <tbody id="history-body"></tbody>
+        </table>
+    </div>
+
 <script>
-    // 1. Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyABiLBG8RUyJtpHebMlWHejr7Xgzysrwlw",
       authDomain: "icmu-scanner.firebaseapp.com",
@@ -46,52 +66,76 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. Member Database from Google Sheets
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTm2fWeo6R07EnowHGZgYFpYc4_ovvzSHYneP398bCp8gv8htAt_i81ySuuUFy1Y8GEXiwcTTGJvGX0/pub?gid=1318759872&single=true&output=csv";
     let memberData = [];
 
     async function loadMembers() {
         try {
-            const response = await fetch(SHEET_CSV_URL);
+            // Added cache-busting timestamp to bypass CORS/Cache issues
+            const response = await fetch(SHEET_CSV_URL + "&t=" + new Date().getTime());
             const text = await response.text();
-            // Basic CSV parsing logic
-            const lines = text.replace(/\r/g, "").split('\n').filter(l => l.trim() !== '').map(l => l.split(','));
+            
+            const lines = text.split('\n').map(line => line.split(','));
             const headers = lines[0].map(h => h.trim().toLowerCase());
             
-            // Adjust these names if your Google Sheet headers are different
-            const iN = headers.indexOf("name"), iI = headers.indexOf("index no"), iR = headers.indexOf("reg no");
-            
+            // Console Debugging - This helps find column index issues
+            console.log("Found Headers:", headers);
+
+            const iN = headers.indexOf("name");
+            const iI = headers.indexOf("index no");
+            const iR = headers.indexOf("reg no");
+
+            if (iN === -1 || iI === -1 || iR === -1) {
+                document.getElementById('debug-info').innerText = "Header Error: Check console (F12)";
+            }
+
             memberData = lines.slice(1).map(cols => ({
-                name: cols[iN]?.trim(),
-                index: cols[iI]?.trim(),
-                reg: cols[iR]?.trim()
-            }));
-            console.log("Database Loaded: " + memberData.length + " members.");
-        } catch (e) { console.error("Data load failed", e); }
+                name: cols[iN]?.replace(/"/g, "").trim(),
+                index: cols[iI]?.replace(/"/g, "").trim(),
+                reg: cols[iR]?.replace(/"/g, "").trim()
+            })).filter(m => m.name);
+
+            document.getElementById('sync-status').innerText = `ICMU SYSTEM ONLINE: ${memberData.length} MEMBERS LOADED`;
+        } catch (e) {
+            document.getElementById('sync-status').innerText = "SYNC FAILED. REFRESH PAGE.";
+            console.error(e);
+        }
     }
 
-    // 3. Listen for scans from Mobile
     db.ref('last_scan').on('value', (snapshot) => {
         const scannedID = snapshot.val();
         if (scannedID) {
-            const member = memberData.find(m => m.reg === scannedID || m.index === scannedID);
-            const card = document.getElementById('display-card');
-            const waitMsg = document.getElementById('waiting-msg');
-
-            if (member) {
-                document.getElementById('disp-name').innerText = member.name.toUpperCase();
-                document.getElementById('disp-reg').innerText = member.reg;
-                document.getElementById('disp-index').innerText = member.index;
-                
-                waitMsg.style.display = 'none';
-                card.classList.add('active');
-                card.classList.add('success-pulse');
-                setTimeout(() => card.classList.remove('success-pulse'), 500);
-            } else {
-                console.log("Unknown Member ID: " + scannedID);
-            }
+            updateDisplay(scannedID.trim());
         }
     });
+
+    function updateDisplay(regID) {
+        // Search by Reg No or Index No
+        const member = memberData.find(m => m.reg === regID || m.index === regID);
+        const card = document.getElementById('display-card');
+        const waitMsg = document.getElementById('waiting-msg');
+
+        if (member) {
+            document.body.style.background = "#0a2918"; // Dark green success
+            document.getElementById('disp-name').innerText = member.name.toUpperCase();
+            document.getElementById('disp-reg').innerText = member.reg;
+            document.getElementById('disp-index').innerText = member.index;
+            
+            waitMsg.style.display = 'none';
+            card.classList.add('active');
+            addToHistory(member);
+        } else {
+            document.body.style.background = "#3d0a0a"; // Dark red fail
+            document.getElementById('debug-info').innerText = `ID NOT FOUND: ${regID}`;
+        }
+    }
+
+    function addToHistory(member) {
+        const body = document.getElementById('history-body');
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const row = `<tr><td>${time}</td><td>${member.reg}</td><td>${member.name}</td></tr>`;
+        body.insertAdjacentHTML('afterbegin', row);
+    }
 
     loadMembers();
 </script>
