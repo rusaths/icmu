@@ -2,237 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ICMU | Access Control Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICMU | Access Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        :root {
-            --primary: #1ca65a;
-            --accent: #00ff88;
-            --bg: #0a0c0b;
-            --surface: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.08);
-        }
+        :root { --primary: #1ca65a; --bg: #0a0c0b; --surface: rgba(255, 255, 255, 0.03); --border: rgba(255, 255, 255, 0.08); }
 
         body {
             font-family: 'Montserrat', sans-serif;
             background: var(--bg);
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(28, 166, 90, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(0, 255, 136, 0.03) 0%, transparent 50%);
             color: #fff;
             margin: 0;
-            display: grid;
-            grid-template-columns: 1fr 400px;
+            display: flex;
+            flex-direction: row;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Left Section: Main Display */
+        /* Responsive Layout Switch */
+        @media (max-width: 1000px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            .sidebar { width: 100% !important; height: 400px !important; border-left: none !important; border-top: 1px solid var(--border); }
+            .main-display { padding: 40px 20px !important; min-height: 80vh; }
+        }
+
         .main-display {
+            flex: 1;
             padding: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-right: 1px solid var(--border);
+            position: relative;
         }
 
-        .header-brand {
-            position: absolute;
-            top: 40px;
-            left: 60px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .brand-dot {
-            width: 12px;
-            height: 12px;
-            background: var(--primary);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--primary);
-            animation: pulse 2s infinite;
-        }
-
-        .brand-text {
-            font-size: 14px;
-            font-weight: 800;
-            letter-spacing: 3px;
-            color: var(--primary);
-            text-transform: uppercase;
-        }
-
-        /* Profile Card */
         #profile-card {
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
             background: var(--surface);
-            backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-radius: 40px;
-            padding: 60px;
-            text-align: left;
+            padding: clamp(20px, 5vw, 60px);
+            box-sizing: border-box;
             opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            transform: translateY(20px);
+            transition: 0.5s ease-out;
         }
 
-        #profile-card.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .profile-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 8px;
-        }
+        #profile-card.active { opacity: 1; transform: translateY(0); }
 
         .profile-name {
-            font-size: 64px;
+            font-size: clamp(32px, 8vw, 64px);
             font-weight: 800;
-            margin: 0 0 40px 0;
-            line-height: 1.1;
-            background: linear-gradient(to right, #fff, #999);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            margin: 20px 0;
+            word-wrap: break-word;
         }
 
         .meta-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
         }
 
-        .meta-value {
-            font-size: 32px;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Right Section: Sidebar Activity */
         .sidebar {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 40px;
+            width: 400px;
+            background: rgba(0,0,0,0.3);
+            border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            padding: 30px;
+            box-sizing: border-box;
         }
 
-        .sidebar-title {
-            font-size: 16px;
-            font-weight: 800;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .live-badge {
-            font-size: 10px;
-            background: rgba(28, 166, 90, 0.15);
-            color: var(--primary);
-            padding: 4px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--primary);
-        }
-
-        #history-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            overflow-y: auto;
-        }
-
-        .history-item {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 15px;
-            border-radius: 15px;
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            animation: slideIn 0.4s ease-out;
-        }
-
-        .history-time { font-size: 10px; color: #555; }
-        .history-name { font-size: 14px; font-weight: 600; }
-        .history-reg { font-size: 12px; color: var(--primary); font-weight: 700; }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        #waiting-state {
-            font-size: 18px;
-            color: #333;
-            font-weight: 600;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-        }
-
-        /* Success Animation */
-        .success-flash {
-            animation: flashBg 0.8s ease-out;
-        }
-
-        @keyframes flashBg {
-            0% { background: rgba(28, 166, 90, 0.2); }
-            100% { background: var(--bg); }
-        }
+        #history-list { overflow-y: auto; flex: 1; margin-top: 20px; }
+        .history-item { background: var(--surface); padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
-
-    <div class="main-display" id="main-area">
-        <div class="header-brand">
-            <div class="brand-dot"></div>
-            <div class="brand-text">ICMU SECURITY GATEWAY</div>
-        </div>
-
-        <div id="waiting-state">SYSTEM READY // WAITING FOR SCAN</div>
-
+    <div class="main-display">
         <div id="profile-card">
-            <div class="profile-label">Authorized Personnel</div>
-            <h1 class="profile-name" id="disp-name">---</h1>
-            
+            <p style="color:var(--primary); font-weight:800; letter-spacing:2px;">AUTHORIZED MEMBER</p>
+            <h1 id="disp-name" class="profile-name">---</h1>
             <div class="meta-grid">
-                <div>
-                    <div class="profile-label">Registration</div>
-                    <div class="meta-value" id="disp-reg">---</div>
-                </div>
-                <div>
-                    <div class="profile-label">Index Number</div>
-                    <div class="meta-value" id="disp-index">---</div>
-                </div>
+                <div><small>REGISTRATION</small><div id="disp-reg" style="font-size:24px; color:var(--primary)">---</div></div>
+                <div><small>INDEX NO</small><div id="disp-index" style="font-size:24px;">---</div></div>
             </div>
         </div>
     </div>
-
     <div class="sidebar">
-        <div class="sidebar-title">
-            RECENT ACTIVITY
-            <span class="live-badge">LIVE FEED</span>
-        </div>
-        <div id="history-list">
-            </div>
+        <strong>RECENT ACTIVITY</strong>
+        <div id="history-list"></div>
     </div>
 
 <script>
-    // 1. FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyABiLBG8RUyJtpHebMlWHejr7Xgzysrwlw",
       authDomain: "icmu-scanner.firebaseapp.com",
@@ -245,76 +110,31 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    // 2. DATA SOURCE
-    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTm2fWeo6R07EnowHGZgYFpYc4_ovvzSHYneP398bCp8gv8htAt_i81ySuuUFy1Y8GEXiwcTTGJvGX0/pub?gid=1318759872&single=true&output=csv";
-    let memberData = [];
-
-    async function loadMembers() {
-        try {
-            const res = await fetch(SHEET_CSV_URL + "&t=" + Date.now());
-            const text = await res.text();
-            const lines = text.split('\n').map(l => l.split(','));
-            const headers = lines[0].map(h => h.trim().toLowerCase());
-            
-            const iN = headers.indexOf("name"), iI = headers.indexOf("index no"), iR = headers.indexOf("reg no");
-
-            memberData = lines.slice(1).map(cols => ({
-                name: cols[iN]?.replace(/"/g, "").trim(),
-                index: cols[iI]?.replace(/"/g, "").trim(),
-                reg: cols[iR]?.replace(/"/g, "").trim()
-            })).filter(m => m.name);
-            
-            console.log("System Initialized: " + memberData.length + " entries.");
-        } catch (e) { console.error("Database link offline."); }
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTm2fWeo6R07EnowHGZgYFpYc4_ovvzSHYneP398bCp8gv8htAt_i81ySuuUFy1Y8GEXiwcTTGJvGX0/pub?gid=1318759872&single=true&output=csv";
+    
+    let members = [];
+    async function load() {
+        const r = await fetch(SHEET_URL + "&t=" + Date.now());
+        const t = await r.text();
+        const l = t.split('\n').map(row => row.split(','));
+        const h = l[0].map(v => v.trim().toLowerCase());
+        const iN = h.indexOf("name"), iI = h.indexOf("index no"), iR = h.indexOf("reg no");
+        members = l.slice(1).map(c => ({ name: c[iN], index: c[iI], reg: c[iR] }));
     }
 
-    // 3. LIVE LISTENER
-    db.ref('last_scan').on('value', (snapshot) => {
-        const id = snapshot.val();
-        if (id) processScan(id.trim());
-    });
-
-    function processScan(scannedID) {
-        const member = memberData.find(m => m.reg === scannedID || m.index === scannedID);
-        const card = document.getElementById('profile-card');
-        const wait = document.getElementById('waiting-state');
-        const area = document.getElementById('main-area');
-
-        if (member) {
-            // Update Text
-            document.getElementById('disp-name').innerText = member.name.toUpperCase();
-            document.getElementById('disp-reg').innerText = member.reg;
-            document.getElementById('disp-index').innerText = member.index;
-
-            // Animations
-            wait.style.display = 'none';
-            card.classList.remove('active');
-            void card.offsetWidth; // Trigger reflow
-            card.classList.add('active');
+    db.ref('last_scan').on('value', s => {
+        const m = members.find(x => x.reg === s.val() || x.index === s.val());
+        if(m) {
+            document.getElementById('disp-name').innerText = m.name;
+            document.getElementById('disp-reg').innerText = m.reg;
+            document.getElementById('disp-index').innerText = m.index;
+            document.getElementById('profile-card').classList.add('active');
             
-            area.classList.add('success-flash');
-            setTimeout(() => area.classList.remove('success-flash'), 800);
-
-            logActivity(member);
+            const item = `<div class="history-item"><b>${m.name}</b><br><small>${m.reg}</small></div>`;
+            document.getElementById('history-list').insertAdjacentHTML('afterbegin', item);
         }
-    }
-
-    function logActivity(m) {
-        const list = document.getElementById('history-list');
-        const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        const item = `
-            <div class="history-item">
-                <span class="history-time">${time}</span>
-                <span class="history-name">${m.name}</span>
-                <span class="history-reg">${m.reg}</span>
-            </div>
-        `;
-        list.insertAdjacentHTML('afterbegin', item);
-    }
-
-    loadMembers();
+    });
+    load();
 </script>
 </body>
 </html>
