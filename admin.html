@@ -8,51 +8,64 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg: #0a0c0b; --sidebar: #0d110f; --card: #131816; --primary: #1ca65a; --text: #ffffff; --dim: #8e918f; --border: rgba(255,255,255,0.05); }
+        
+        /* Smooth Animations */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
         body, html { margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
         
         /* Login Overlay */
-        #loginOverlay { position: fixed; inset: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 9999; }
-        .login-box { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid var(--primary); width: 320px; text-align: center; }
-        .login-box img { height: 70px; margin-bottom: 20px; }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; box-sizing: border-box; }
-        .login-btn { width: 100%; padding: 12px; background: var(--primary); border: none; color: #fff; font-weight: 800; border-radius: 10px; cursor: pointer; }
+        #loginOverlay { position: fixed; inset: 0; background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 9999; transition: 0.5s; }
+        .login-box { background: var(--card); padding: 40px; border-radius: 24px; border: 1px solid var(--primary); width: 320px; text-align: center; animation: fadeInUp 0.6s ease; }
+        .login-box img { height: 75px; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; box-sizing: border-box; transition: 0.3s; }
+        .login-box input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(28,166,90,0.2); }
+        .login-btn { width: 100%; padding: 14px; background: var(--primary); border: none; color: #fff; font-weight: 800; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .login-btn:hover { background: #148347; transform: translateY(-2px); }
 
         /* Dashboard UI */
         .wrapper { display: none; height: 100vh; }
-        .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; }
-        .nav-item { display: flex; align-items: center; gap: 15px; padding: 14px; text-decoration: none; color: var(--dim); border-radius: 10px; margin-bottom: 5px; }
-        .nav-item.active, .nav-item:hover { background: rgba(28,166,90,0.1); color: var(--primary); }
-        .main { flex: 1; padding: 40px; overflow-y: auto; }
+        .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 30px 20px; animation: slideIn 0.5s ease; }
+        .nav-item { display: flex; align-items: center; gap: 15px; padding: 14px; text-decoration: none; color: var(--dim); border-radius: 12px; margin-bottom: 8px; transition: 0.3s; }
+        .nav-item.active, .nav-item:hover { background: rgba(28,166,90,0.1); color: var(--primary); transform: translateX(5px); }
+        
+        .main { flex: 1; padding: 40px; overflow-y: auto; animation: fadeInUp 0.8s ease; }
         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; }
-        .stat-card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid var(--border); }
-        .stat-card h2 { color: var(--primary); margin: 10px 0 0; }
+        .stat-card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--border); transition: 0.3s; }
+        .stat-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+        .stat-card h2 { color: var(--primary); margin: 10px 0 0; font-size: 32px; }
     </style>
 </head>
 <body>
     <div id="loginOverlay">
         <div class="login-box">
             <img src="icmu-logo.png" alt="ICMU">
-            <h3 style="letter-spacing:2px; font-size:14px;">ADMIN LOGIN</h3>
+            <h3 style="letter-spacing:3px; font-size:12px; color: var(--dim);">ADMINISTRATOR</h3>
             <input type="text" id="user" placeholder="Username">
             <input type="password" id="pass" placeholder="Password">
-            <button class="login-btn" onclick="login()">UNLOCK</button>
+            <button class="login-btn" onclick="login()">UNLOCK SYSTEM</button>
         </div>
     </div>
 
     <div class="wrapper" id="dash">
         <nav class="sidebar">
-            <div style="text-align:center; margin-bottom:30px;"><img src="icmu-logo.png" height="50"></div>
-            <a href="admin.html" class="nav-item active"><i class="fa-solid fa-house"></i> Overview</a>
-            <a href="members.html" class="nav-item"><i class="fa-solid fa-id-card"></i> Card Manager</a>
-            <a href="scanner.html" class="nav-item"><i class="fa-solid fa-qrcode"></i> Scanner</a>
-            <a href="index.html" class="nav-item" style="margin-top:auto;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+            <div style="text-align:center; margin-bottom:40px;"><img src="icmu-logo.png" height="60"></div>
+            <a href="admin.html" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Overview</a>
+            <a href="members.html" class="nav-item"><i class="fa-solid fa-address-card"></i> Card Manager</a>
+            <a href="news-admin.html" class="nav-item"><i class="fa-solid fa-newspaper"></i> News Editor</a>
+            <a href="scanner.html" class="nav-item"><i class="fa-solid fa-qrcode"></i> Gateway Scanner</a>
+            <a href="index.html" class="nav-item" style="margin-top:auto; color: #ff4d4d;"><i class="fa-solid fa-power-off"></i> Logout</a>
         </nav>
         <main class="main">
-            <h1>Dashboard</h1>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Management Hub</h1>
+                <img src="ic-logo.png" height="50" style="opacity:0.5">
+            </div>
             <div class="stat-grid">
-                <div class="stat-card"><small>MEMBERS</small><h2>2,540</h2></div>
-                <div class="stat-card"><small>NEWS POSTS</small><h2>124</h2></div>
-                <div class="stat-card"><small>STATUS</small><h2 style="color:#fff">ACTIVE</h2></div>
+                <div class="stat-card"><small style="color:var(--dim)">TOTAL MEMBERS</small><h2>2,540</h2></div>
+                <div class="stat-card"><small style="color:var(--dim)">NEWS ARTICLES</small><h2>124</h2></div>
+                <div class="stat-card"><small style="color:var(--dim)">SYSTEM STATUS</small><h2 style="color:#fff">SECURE</h2></div>
             </div>
         </main>
     </div>
@@ -60,9 +73,12 @@
     <script>
         function login() {
             if(document.getElementById('user').value==="25473" && document.getElementById('pass').value==="0") {
-                document.getElementById('loginOverlay').style.display="none";
-                document.getElementById('dash').style.display="flex";
-            } else { alert("Access Denied"); }
+                document.getElementById('loginOverlay').style.opacity="0";
+                setTimeout(() => {
+                    document.getElementById('loginOverlay').style.display="none";
+                    document.getElementById('dash').style.display="flex";
+                }, 500);
+            } else { alert("Invalid Credentials"); }
         }
     </script>
 </body>
