@@ -3,66 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <title>ICMU | Card Manager</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
-        :root { --bg: #0a0c0b; --card: #131816; --primary: #1ca65a; --border: rgba(255,255,255,0.05); }
+        :root { --bg: #0a0c0b; --sidebar: #0d110f; --card: #131816; --primary: #1ca65a; --text: #ffffff; --dim: #8e918f; --border: rgba(255,255,255,0.05); }
+        * { box-sizing: border-box; }
         body { font-family: 'Montserrat', sans-serif; background: var(--bg); color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        .sidebar { width: 260px; background: #0d110f; border-right: 1px solid var(--border); padding: 30px 20px; }
-        .container { flex: 1; padding: 40px; display: grid; grid-template-columns: 380px 1fr; gap: 30px; overflow-y: auto; }
-        .form-panel { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--border); }
+
+        /* Sidebar Nav */
+        .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 30px 20px; display: flex; flex-direction: column; }
+        .nav-center { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .nav-center button { padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 12px; background: #1a1a1a; color: #666; text-align: left; }
+        .nav-center button.active { background: var(--primary); color: #fff; }
+        .back-link { margin-top: auto; color: var(--dim); text-decoration: none; font-size: 13px; }
+
+        /* Main Layout */
+        .container { flex: 1; display: grid; grid-template-columns: 420px 1fr; gap: 30px; padding: 40px; overflow-y: auto; }
+        
+        /* Form Sections */
+        .form-section { background: var(--card); border-radius: 24px; padding: 30px; border: 1px solid var(--border); height: fit-content; }
+        .form-section h2 { margin-top: 0; color: var(--primary); font-weight: 800; font-size: 18px; margin-bottom: 20px; }
+        
         .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 10px; color: #8e918f; font-weight: 700; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; box-sizing: border-box; }
-        .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; margin-top: 10px; }
-        .btn-green { background: var(--primary); color: #fff; }
-        canvas { width: 100%; border-radius: 15px; border: 1px solid var(--primary); }
+        .input-group label { display: block; font-size: 10px; font-weight: 700; color: var(--dim); margin-bottom: 5px; text-transform: uppercase; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); border-radius: 10px; color: #fff; outline: none; font-family: inherit; }
+        
+        .drop-zone { border: 2px dashed var(--primary); border-radius: 12px; padding: 25px; text-align: center; color: var(--primary); cursor: pointer; background: rgba(28,166,90,0.05); margin-bottom: 15px; }
+        
+        /* Member List Styling */
+        .member-selector { border: 1px solid var(--border); border-radius: 12px; max-height: 220px; overflow-y: auto; margin-bottom: 15px; background: #000; }
+        .member-item { display: flex; align-items: center; padding: 10px; gap: 10px; border-bottom: 1px solid var(--border); font-size: 12px; cursor: pointer; color: var(--dim); }
+        .member-item.active-preview { background: rgba(28,166,90,0.1); color: var(--primary); border-left: 4px solid var(--primary); }
+
+        /* Buttons */
+        .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 10px; text-transform: uppercase; transition: 0.3s; }
+        .btn-bulk { background: var(--primary); color: #fff; }
+        .btn-single { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+        /* Preview Area */
+        .preview-section { display: flex; flex-direction: column; align-items: center; }
+        #previewCanvas { width: 100%; max-width: 850px; border-radius: 20px; border: 1px solid var(--primary); box-shadow: 0 0 40px rgba(28,166,90,0.15); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <nav class="sidebar">
-        <img src="icmu-logo.png" height="50" style="margin-bottom:30px;">
-        <p style="font-size:12px; color:var(--primary); font-weight:800;">CARD GENERATOR</p>
-        <a href="admin.html" style="color:#fff; text-decoration:none; font-size:14px; display:block; margin-top:20px;">← Dashboard</a>
-    </nav>
-    <div class="container">
-        <div class="form-panel">
-            <div class="input-group"><label>FULL NAME</label><input type="text" id="nameIn" oninput="update()" placeholder="Name"></div>
-            <div class="input-group"><label>INDEX NO</label><input type="text" id="idxIn" oninput="update()" placeholder="0000"></div>
-            <div class="input-group"><label>REG NO</label><input type="text" id="regIn" oninput="update()" placeholder="00M000"></div>
-            <button class="btn btn-green" onclick="download('png')">DOWNLOAD PNG</button>
-            <button class="btn" style="background:#222; color:#fff;" onclick="download('pdf')">EXPORT PDF</button>
-        </div>
-        <div class="preview"><canvas id="cardCanvas" width="1016" height="638"></canvas></div>
+
+<nav class="sidebar">
+    <img src="icmu-logo.png" height="50" style="margin-bottom: 20px;">
+    <div class="nav-center">
+        <button id="tab-manual" class="active" onclick="switchTab('manual')"><i class="fa-solid fa-keyboard"></i> Manual Entry</button>
+        <button id="tab-csv" onclick="switchTab('csv')"><i class="fa-solid fa-file-csv"></i> CSV Upload</button>
+        <button id="tab-sheet" onclick="switchTab('sheet')"><i class="fa-solid fa-table"></i> Google Sheet</button>
     </div>
-    <script>
-        const canvas = document.getElementById("cardCanvas");
-        const ctx = canvas.getContext("2d");
-        const logoA = new Image(); logoA.src = "ic-logo.png";
-        const logoB = new Image(); logoB.src = "icmu-logo.png";
+    <a href="admin.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
+</nav>
+
+<div class="container">
+    <div class="controls">
+        <div class="form-section" id="manualSection">
+            <h2>Manual Creator</h2>
+            <div class="input-group"><label>Full Name</label><input type="text" id="nameInput" oninput="updatePreview()"></div>
+            <div class="input-group"><label>Index No</label><input type="text" id="indexInput" oninput="updatePreview()"></div>
+            <div class="input-group"><label>Reg No</label><input type="text" id="regInput" oninput="updatePreview()"></div>
+            <div class="button-grid">
+                <button class="btn btn-single" onclick="downloadSingle('png')">PNG</button>
+                <button class="btn btn-single" onclick="downloadSingle('pdf')">PDF</button>
+            </div>
+        </div>
+
+        <div class="form-section hidden" id="csvSection">
+            <h2>CSV Upload</h2>
+            <div id="dropZone" class="drop-zone" onclick="document.getElementById('csvFile').click()">
+                <p style="font-size:11px; font-weight:700">Drag CSV or Click to Browse</p>
+                <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleFile(this.files[0])">
+            </div>
+            <div id="csvControls" class="hidden">
+                <div style="margin-bottom:10px; font-size:11px;"><label><input type="checkbox" id="selectAllCSV" onclick="toggleAll('CSV')"> Select All</label></div>
+                <div id="memberListCSV" class="member-selector"></div>
+                <div class="button-grid">
+                    <button id="sPngCSV" class="btn btn-single" onclick="downloadSingle('png')" disabled>PNG</button>
+                    <button id="bPngCSV" class="btn btn-bulk" onclick="bulkAction('png')" disabled>Bulk PNG</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section hidden" id="sheetSection">
+            <h2>Sync Google Sheet</h2>
+            <div class="input-group"><label>Published CSV URL</label><input type="url" id="sheetUrl" placeholder="Paste link here..."></div>
+            <button class="btn btn-bulk" style="margin-bottom:15px;" onclick="fetchSheetData()">Connect & Sync</button>
+            <div id="sheetControls" class="hidden">
+                <div id="memberListSheet" class="member-selector"></div>
+                <div class="button-grid">
+                    <button id="sPngSheet" class="btn btn-single" onclick="downloadSingle('png')" disabled>PNG</button>
+                    <button id="bPngSheet" class="btn btn-bulk" onclick="bulkAction('png')" disabled>Bulk ZIP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-section">
+        <canvas id="previewCanvas" width="1016" height="638"></canvas>
+    </div>
+</div>
+
+<canvas id="hiddenCanvas" width="1016" height="638" class="hidden"></canvas>
+
+<script>
+    const previewCanvas = document.getElementById("previewCanvas");
+    const previewCtx = previewCanvas.getContext("2d");
+    const hiddenCanvas = document.getElementById("hiddenCanvas");
+    const hiddenCtx = hiddenCanvas.getContext("2d");
+    const logoA = new Image(); logoA.src = "ic-logo.png";
+    const logoB = new Image(); logoB.src = "icmu-logo.png";
+    let csvData = [];
+    let selectedIdx = -1;
+
+    // Load Initial State
+    window.onload = () => { setTimeout(() => drawCard(previewCtx), 500); };
+
+    function switchTab(tab) {
+        ['manual', 'csv', 'sheet'].forEach(t => {
+            document.getElementById(t + 'Section').classList.toggle('hidden', t !== tab);
+            document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+        });
+    }
+
+    async function fetchSheetData() {
+        const url = document.getElementById('sheetUrl').value;
+        if (!url) return;
+        try {
+            const response = await fetch(url);
+            const data = await response.text();
+            parseCSV(data, 'memberListSheet', 'sheetControls');
+        } catch (e) { alert("Sync Failed"); }
+    }
+
+    function parseCSV(text, listId, controlId) {
+        const lines = text.split('\n').filter(l => l.trim() !== '').map(l => l.split(','));
+        const headers = lines[0].map(h => h.trim().toLowerCase());
+        const iN = headers.indexOf("name"), iI = headers.indexOf("index no"), iR = headers.indexOf("reg no");
+        csvData = []; 
+        const list = document.getElementById(listId); 
+        list.innerHTML = '';
+        document.getElementById(controlId).classList.remove('hidden');
         
-        async function update() {
-            const name = document.getElementById('nameIn').value || "FULL NAME";
-            const idx = document.getElementById('idxIn').value || "0000";
-            const reg = document.getElementById('regIn').value || "00M000";
-            
-            ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 1016, 638);
-            ctx.fillStyle = "#fff"; ctx.font = "700 42px Montserrat"; ctx.fillText("MEMBERSHIP CARD", 50, 100);
-            
-            if(logoA.complete && logoB.complete) {
-                ctx.drawImage(logoA, 800, 50, 65, 65);
-                ctx.drawImage(logoB, 885, 50, 65, 65);
-            }
-            
-            ctx.fillStyle = "#fff"; ctx.font = "600 32px Montserrat";
-            ctx.fillText(name.toUpperCase(), 380, 260);
-            ctx.fillText(idx, 380, 380);
-            ctx.fillText(reg, 380, 500);
+        lines.slice(1).forEach((cols, i) => {
+            if (cols.length < 3) return;
+            const m = { name: cols[iN], index: cols[iI], reg: cols[iR], sel: false };
+            csvData.push(m);
+            const d = document.createElement('div');
+            d.className = 'member-item';
+            d.innerHTML = `<input type="checkbox" class="mem-check" onclick="event.stopPropagation(); toggleSelection(${i})"> <span>${m.reg} - ${m.name}</span>`;
+            d.onclick = () => {
+                selectedIdx = i;
+                document.querySelectorAll('.member-item').forEach(el => el.classList.remove('active-preview'));
+                d.classList.add('active-preview');
+                drawCard(previewCtx, m.name, m.index, m.reg);
+                refreshButtonStates();
+            };
+            list.appendChild(d);
+        });
+    }
+
+    function toggleSelection(i) { csvData[i].sel = !csvData[i].sel; refreshButtonStates(); }
+
+    function toggleAll(type) {
+        const checked = document.getElementById('selectAll' + type).checked;
+        const checkboxes = document.querySelectorAll('.mem-check');
+        checkboxes.forEach((cb, i) => { cb.checked = checked; csvData[i].sel = checked; });
+        refreshButtonStates();
+    }
+
+    function refreshButtonStates() {
+        const checkedCount = csvData.filter(m => m.sel).length;
+        const hasPreview = selectedIdx !== -1;
+        ['CSV', 'Sheet'].forEach(sfx => {
+            const sPng = document.getElementById('sPng' + sfx);
+            const bPng = document.getElementById('bPng' + sfx);
+            if(sPng) sPng.disabled = !(checkedCount === 0 && hasPreview);
+            if(bPng) bPng.disabled = (checkedCount === 0);
+        });
+    }
+
+    async function drawCard(ctx, name, idx, reg) {
+        const W = 1016, H = 638, M = 50;
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+        
+        // Header
+        ctx.fillStyle = "#fff";
+        ctx.font = "600 17px Montserrat";
+        ctx.fillText("ISIPATHANA COLLEGE MEDIA UNIT", M, M + 17);
+        ctx.font = "700 42px Montserrat";
+        ctx.fillText("MEMBERSHIP CARD", M, M + 55);
+
+        if (logoA.complete && logoB.complete) {
+            ctx.drawImage(logoA, 810, 50, 70, 70);
+            ctx.drawImage(logoB, 895, 50, 70, 70);
         }
-        window.onload = update;
-        // Download and QR logic remains the same as your process
-    </script>
+
+        // Photo Box
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.roundRect(M, 160, 280, 360, 15);
+        ctx.fill();
+
+        // Data
+        ctx.fillStyle = "#fff";
+        ctx.font = "500 16px Montserrat";
+        ctx.fillText("NAME", 370, 240);
+        ctx.font = "700 32px Montserrat";
+        ctx.fillText((name || "FULL NAME").toUpperCase(), 370, 280);
+
+        ctx.font = "500 16px Montserrat";
+        ctx.fillText("INDEX NO", 370, 360);
+        ctx.font = "700 32px Montserrat";
+        ctx.fillText(idx || "0000", 370, 400);
+
+        ctx.font = "500 16px Montserrat";
+        ctx.fillText("REGISTRATION NO", 370, 480);
+        ctx.font = "700 32px Montserrat";
+        ctx.fillText(reg || "00M000", 370, 520);
+
+        // QR Code
+        const qr = await getQRImage(reg || "00M000");
+        if (qr) {
+            const qI = new Image(); qI.src = qr;
+            await new Promise(r => qI.onload = r);
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.roundRect(W-M-120, H-M-120, 120, 120, 10); ctx.fill();
+            ctx.drawImage(qI, W-M-115, H-M-115, 110, 110);
+        }
+    }
+
+    async function getQRImage(text) {
+        return new Promise(res => {
+            const d = document.createElement("div");
+            new QRCode(d, { text: text, width: 110, height: 110 });
+            setTimeout(() => { const i = d.querySelector("img"); res(i ? i.src : ""); }, 100);
+        });
+    }
+
+    async function downloadSingle(type) {
+        const name = (selectedIdx === -1) ? (document.getElementById('nameInput').value || "Card") : csvData[selectedIdx].name;
+        if(type === 'png') {
+            const a = document.createElement("a"); a.href = previewCanvas.toDataURL("image/png"); a.download = `${name}.png`; a.click();
+        } else {
+            const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'px', [1016, 638]);
+            doc.addImage(previewCanvas.toDataURL("image/png"), 'PNG', 0, 0, 1016, 638); doc.save(`${name}.pdf`);
+        }
+    }
+
+    async function bulkAction(fmt) {
+        const zip = new JSZip();
+        const selected = csvData.filter(m => m.sel);
+        for (let m of selected) {
+            await drawCard(hiddenCtx, m.name, m.index, m.reg);
+            const data = hiddenCanvas.toDataURL("image/png").split(',')[1];
+            zip.file(`${m.reg}.png`, data, {base64: true});
+        }
+        zip.generateAsync({type:"blob"}).then(c => {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(c); a.download = "ICMU-Cards.zip"; a.click();
+        });
+    }
+
+    function updatePreview() { drawCard(previewCtx, document.getElementById('nameInput').value, document.getElementById('indexInput').value, document.getElementById('regInput').value); }
+    function handleFile(file) { if(file) { const reader = new FileReader(); reader.onload = (e) => parseCSV(e.target.result, 'memberListCSV', 'csvControls'); reader.readAsText(file); } }
+</script>
 </body>
 </html>
